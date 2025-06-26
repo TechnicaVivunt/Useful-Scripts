@@ -1,4 +1,4 @@
-﻿Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Windows.Forms
 
 # Prompt for computer names
 $computerInput = Read-Host "Enter computer names (comma-separated)"
@@ -22,7 +22,6 @@ if ($saveFileDialog.ShowDialog() -eq "OK") {
 # Prepare results list
 $allResults = @()
 
-# Script block to run on remote computers
 $scriptBlock = {
     $results = @()
     $computerName = $env:COMPUTERNAME
@@ -70,9 +69,10 @@ $scriptBlock = {
         if (Test-Path $printerKeyPath) {
             $printers = Get-ChildItem $printerKeyPath
             foreach ($printer in $printers) {
-            $cleanIdentifier = $printer.PSChildName -replace ",", "\"
+                $cleanIdentifier = $printer.PSChildName -replace ",", "\"
                 $results += [PSCustomObject]@{
                     ComputerName = $computerName
+                    UserSID      = $sidStr
                     Username     = $username
                     Type         = "Printer"
                     Identifier   = $cleanIdentifier
@@ -83,8 +83,22 @@ $scriptBlock = {
         }
     }
 
+    # If no results found, return a placeholder record
+    if ($results.Count -eq 0) {
+        $results += [PSCustomObject]@{
+            ComputerName = $computerName
+            UserSID      = ""
+            Username     = ""
+            Type         = "Info"
+            Identifier   = ""
+            Target       = ""
+            Error        = "No mapped drives or printers found"
+        }
+    }
+
     return $results
 }
+
 
 # Loop through each machine
 foreach ($computer in $computerList) {
